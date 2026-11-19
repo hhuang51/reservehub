@@ -1,0 +1,188 @@
+# ReserveHub infrastructure on Render (D1, D4).
+#
+# Two environments with separate services, data, and secrets:
+#   staging     free API (SQLite resets on each deploy) + static site
+#   production  Starter API with a 1 GB persistent disk + static site
+#
+# Deploys are triggered only by the GitHub Actions pipeline
+# (.github/workflows/deploy.yml), never automatically, so every commit
+# goes through tests -> staging -> /healthz check -> production.
+#
+# Values marked "sync: false" are secrets or account-specific; Render asks
+# for them when the Blueprint is first created. They are not in this file.
+#
+# If Render gives a service a different URL than <name>.onrender.com, update
+# VITE_API_URL and the Content-Security-Policy connect-src below to match.
+
+projects:
+  - name: reservehub
+    environments:
+      - name: staging
+        services:
+          - type: web
+            name: reservehub-api-staging
+            runtime: node
+            plan: free
+            region: ohio
+            rootDir: server
+            autoDeployTrigger: "off"
+            buildCommand: npm ci
+            startCommand: npm start
+            healthCheckPath: /healthz
+            envVars:
+              - key: NODE_VERSION
+                value: "24"
+              - key: APP_ENV
+                value: staging
+              - key: TRUST_PROXY
+                value: "1"
+              - key: AUTH0_DOMAIN
+                value: dev-ufj4dlu42vc0rwfy.us.auth0.com
+              - key: AUTH0_AUDIENCE
+                value: https://reservehub-api
+              - key: FRONTEND_ORIGIN
+                value: https://reservehub-web-staging.onrender.com
+              - key: CALENDARIFIC_API_KEY
+                sync: false
+
+          - type: web
+            name: reservehub-web-staging
+            runtime: static
+            autoDeployTrigger: "off"
+            buildCommand: npm ci && npm run build && node scripts/write-version.mjs
+            staticPublishPath: ./dist
+            envVars:
+              - key: NODE_VERSION
+                value: "24"
+              - key: VITE_API_URL
+                value: https://reservehub-api-staging.onrender.com
+              - key: VITE_AUTH0_DOMAIN
+                value: dev-ufj4dlu42vc0rwfy.us.auth0.com
+              - key: VITE_AUTH0_AUDIENCE
+                value: https://reservehub-api
+              - key: VITE_AUTH0_CLIENT_ID
+                sync: false
+            headers:
+              # Security headers on everything. HTML is revalidated on every
+              # visit so a deploy shows up at once; Vite asset names contain a
+              # content hash, so assets are cached for a year.
+              - path: /*
+                name: Content-Security-Policy
+                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://reservehub-api-staging.onrender.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+              - path: /*
+                name: Strict-Transport-Security
+                value: "max-age=31536000; includeSubDomains"
+              - path: /*
+                name: X-Content-Type-Options
+                value: "nosniff"
+              - path: /*
+                name: Referrer-Policy
+                value: "strict-origin-when-cross-origin"
+              - path: /*
+                name: X-Frame-Options
+                value: "DENY"
+              - path: /*
+                name: Permissions-Policy
+                value: "camera=(), microphone=(), geolocation=()"
+              - path: /
+                name: Cache-Control
+                value: "public, no-cache"
+              - path: /index.html
+                name: Cache-Control
+                value: "public, no-cache"
+              - path: /assets/*
+                name: Cache-Control
+                value: "public, max-age=31536000, immutable"
+              - path: /version.json
+                name: Cache-Control
+                value: "no-store"
+
+      - name: production
+        services:
+          - type: web
+            name: reservehub-api
+            runtime: node
+            plan: starter
+            region: ohio
+            rootDir: server
+            autoDeployTrigger: "off"
+            buildCommand: npm ci
+            startCommand: npm start
+            healthCheckPath: /healthz
+            disk:
+              name: data
+              mountPath: /var/data
+              sizeGB: 1
+            envVars:
+              - key: NODE_VERSION
+                value: "24"
+              - key: APP_ENV
+                value: production
+              - key: TRUST_PROXY
+                value: "1"
+              - key: DATABASE_PATH
+                value: /var/data/reservehub.sqlite
+              - key: HOLIDAY_CACHE_PATH
+                value: /var/data/holiday-cache.sqlite
+              - key: MCP_AUDIT_PATH
+                value: /var/data/mcp-audit.sqlite
+              - key: AUTH0_DOMAIN
+                value: dev-ufj4dlu42vc0rwfy.us.auth0.com
+              - key: AUTH0_AUDIENCE
+                value: https://reservehub-api
+              - key: FRONTEND_ORIGIN
+                value: https://reservehub-web.onrender.com
+              - key: CALENDARIFIC_API_KEY
+                sync: false
+
+          - type: web
+            name: reservehub-web
+            runtime: static
+            autoDeployTrigger: "off"
+            buildCommand: npm ci && npm run build && node scripts/write-version.mjs
+            staticPublishPath: ./dist
+            envVars:
+              - key: NODE_VERSION
+                value: "24"
+              - key: VITE_API_URL
+                value: https://reservehub-api.onrender.com
+              - key: VITE_AUTH0_DOMAIN
+                value: dev-ufj4dlu42vc0rwfy.us.auth0.com
+              - key: VITE_AUTH0_AUDIENCE
+                value: https://reservehub-api
+              - key: VITE_AUTH0_CLIENT_ID
+                sync: false
+            headers:
+              # Security headers on everything. HTML is revalidated on every
+              # visit so a deploy shows up at once; Vite asset names contain a
+              # content hash, so assets are cached for a year.
+              - path: /*
+                name: Content-Security-Policy
+                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://reservehub-api.onrender.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+              - path: /*
+                name: Strict-Transport-Security
+                value: "max-age=31536000; includeSubDomains"
+              - path: /*
+                name: X-Content-Type-Options
+                value: "nosniff"
+              - path: /*
+                name: Referrer-Policy
+                value: "strict-origin-when-cross-origin"
+              - path: /*
+                name: X-Frame-Options
+                value: "DENY"
+              - path: /*
+                name: Permissions-Policy
+                value: "camera=(), microphone=(), geolocation=()"
+              - path: /
+                name: Cache-Control
+                value: "public, no-cache"
+              - path: /index.html
+                name: Cache-Control
+                value: "public, no-cache"
+              - path: /assets/*
+                name: Cache-Control
+                value: "public, max-age=31536000, immutable"
+              - path: /version.json
+                name: Cache-Control
+                value: "no-store"

@@ -1,0 +1,114 @@
+# CI/CD (D5): test -> staging -> verify -> production -> verify.
+#
+# Every push to main runs the whole pipeline for that commit.
+# Rollback: Actions tab -> "Test and deploy" -> Run workflow, and enter an
+# older commit SHA. The same tested path deploys that exact commit.
+#
+# Setup (once): create GitHub environments "staging" and "production", each with
+#   secrets: RENDER_DEPLOY_HOOK_API, RENDER_DEPLOY_HOOK_WEB  (from Render service Settings)
+#   variables: API_URL, WEB_URL  (e.g. https://reservehub-api-staging.onrender.com)
+
+name: Test and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit SHA to deploy (enter an older SHA to roll back)"
+        required: false
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.sha }}
+
+      - id: sha
+        name: Record the exact commit being deployed
+        run: |
+          sha="$(git rev-parse HEAD)"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Build"
+            echo "- Commit: \`$sha\`"
+            echo "- Workflow run: ${{ github.run_id }} (attempt ${{ github.run_attempt }})"
+            echo "- Trigger: ${{ github.event_name }} by ${{ github.actor }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Server tests
+        working-directory: server
+        run: |
+          npm ci
+          npm test
+
+      - name: Frontend type check and build
+        run: |
+          npm ci
+          npm run build
+
+  staging:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy this commit to staging
+        env:
+          HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+          HOOK_WEB: ${{ secrets.RENDER_DEPLOY_HOOK_WEB }}
+          SHA: ${{ needs.test.outputs.sha }}
+        run: |
+          curl -fsS -X POST "${HOOK_API}&ref=${SHA}" > /dev/null
+          curl -fsS -X POST "${HOOK_WEB}&ref=${SHA}" > /dev/null
+          echo "Triggered staging deploys for ${SHA}"
+
+      - name: Wait for staging /healthz and /version.json
+        env:
+          SHA: ${{ needs.test.outputs.sha }}
+        run: |
+          bash scripts/wait-for-deploy.sh "${{ vars.API_URL }}/healthz" "$SHA" 900
+          bash scripts/wait-for-deploy.sh "${{ vars.WEB_URL }}/version.json" "$SHA" 900
+          echo "- Staging verified at $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+  production:
+    needs: [test, staging]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy the same commit to production
+        env:
+          HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+          HOOK_WEB: ${{ secrets.RENDER_DEPLOY_HOOK_WEB }}
+          SHA: ${{ needs.test.outputs.sha }}
+        run: |
+          curl -fsS -X POST "${HOOK_API}&ref=${SHA}" > /dev/null
+          curl -fsS -X POST "${HOOK_WEB}&ref=${SHA}" > /dev/null
+          echo "Triggered production deploys for ${SHA}"
+
+      - name: Wait for production /healthz and /version.json
+        env:
+          SHA: ${{ needs.test.outputs.sha }}
+        run: |
+          bash scripts/wait-for-deploy.sh "${{ vars.API_URL }}/healthz" "$SHA" 900
+          bash scripts/wait-for-deploy.sh "${{ vars.WEB_URL }}/version.json" "$SHA" 900
+          echo "- Production verified at $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
