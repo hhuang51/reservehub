@@ -70,7 +70,7 @@ Auth0 Dashboard → Applications → your SPA → Settings. Add both web URLs
 - **Allowed Web Origins**
 
 ```
-http://localhost:5173, https://reservehub-web-staging.onrender.com, https://reservehub-web.onrender.com
+http://localhost:5173, https://staging.reservehub-hh.com, https://www.reservehub-hh.com
 ```
 
 ## 3. Connect the pipeline
@@ -82,8 +82,8 @@ GitHub repository → **Settings → Environments**. Create `staging` and
 |---|---|---|
 | Secret | `RENDER_DEPLOY_HOOK_API` | That environment's API: Render → service → Settings → Deploy Hook |
 | Secret | `RENDER_DEPLOY_HOOK_WEB` | That environment's static site deploy hook |
-| Variable | `API_URL` | e.g. `https://reservehub-api-staging.onrender.com` |
-| Variable | `WEB_URL` | e.g. `https://reservehub-web-staging.onrender.com` |
+| Variable | `API_URL` | e.g. `https://api-staging.reservehub-hh.com` |
+| Variable | `WEB_URL` | e.g. `https://staging.reservehub-hh.com` |
 
 Deploy hook URLs are secrets: anyone with one can trigger a deploy.
 
@@ -99,16 +99,16 @@ Screenshot it for D5.
 Check by hand:
 
 ```
-curl -i https://reservehub-api-dxu7.onrender.com/healthz
-curl -I https://reservehub-web.onrender.com/
-curl https://reservehub-web.onrender.com/version.json
+curl -i https://api.reservehub-hh.com/healthz
+curl -I https://www.reservehub-hh.com/
+curl https://www.reservehub-hh.com/version.json
 ```
 
 `/healthz` and `/version.json` both report the deployed commit.
 
 ## 5. Rollback demonstration
 
-1. Note the current commit: `curl https://reservehub-api-dxu7.onrender.com/healthz`.
+1. Note the current commit: `curl https://api.reservehub-hh.com/healthz`.
 2. Actions → **Test and deploy** → Run workflow → enter the **previous**
    commit SHA (`git log --oneline`).
 3. When the run finishes, `/healthz` shows the older commit. Save the

@@ -1,0 +1,51 @@
+# TLS certificate expiry alert (D3).
+#
+# Runs daily. Fails (and GitHub emails the repository owner) if any
+# certificate expires in fewer than 21 days. Render renews certificates
+# automatically, so a failure means renewal has stopped working.
+#
+# Demonstration: Actions -> "Certificate expiry check" -> Run workflow, and
+# set min_days to 100. Certificates last at most 90 days, so the run fails
+# and the alert email arrives. Then run it again with the default (21).
+
+name: Certificate expiry check
+
+on:
+  schedule:
+    - cron: "17 14 * * *"   # daily at 14:17 UTC (8:17 AM Chicago)
+  workflow_dispatch:
+    inputs:
+      min_days:
+        description: "Alert if a certificate expires in fewer than this many days"
+        required: false
+        default: "21"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check certificates
+        env:
+          MIN_DAYS: ${{ github.event.inputs.min_days || '21' }}
+        run: |
+          set -o pipefail
+          bash scripts/check-cert-expiry.sh "$MIN_DAYS" \
+            reservehub-hh.com \
+            www.reservehub-hh.com \
+            api.reservehub-hh.com \
+            staging.reservehub-hh.com \
+            api-staging.reservehub-hh.com | tee result.txt
+          status=$?
+          {
+            echo "## Certificate expiry (alert threshold: ${MIN_DAYS} days)"
+            echo '```'
+            cat result.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $status

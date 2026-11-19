@@ -11,8 +11,11 @@
 # Values marked "sync: false" are secrets or account-specific; Render asks
 # for them when the Blueprint is first created. They are not in this file.
 #
-# If Render gives a service a different URL than <name>.onrender.com, update
-# VITE_API_URL and the Content-Security-Policy connect-src below to match.
+# Public URLs (custom domain reservehub-hh.com, see docs/dns-and-tls.md):
+#   production  https://www.reservehub-hh.com      API https://api.reservehub-hh.com
+#   staging     https://staging.reservehub-hh.com  API https://api-staging.reservehub-hh.com
+# The onrender.com addresses still answer, but CORS only allows the
+# custom-domain origins above.
 
 projects:
   - name: reservehub
@@ -41,7 +44,7 @@ projects:
               - key: AUTH0_AUDIENCE
                 value: https://reservehub-api
               - key: FRONTEND_ORIGIN
-                value: https://reservehub-web-staging.onrender.com
+                value: https://staging.reservehub-hh.com
               - key: CALENDARIFIC_API_KEY
                 sync: false
 
@@ -55,7 +58,7 @@ projects:
               - key: NODE_VERSION
                 value: "24"
               - key: VITE_API_URL
-                value: https://reservehub-api-staging.onrender.com
+                value: https://api-staging.reservehub-hh.com
               - key: VITE_AUTH0_DOMAIN
                 value: dev-ufj4dlu42vc0rwfy.us.auth0.com
               - key: VITE_AUTH0_AUDIENCE
@@ -68,7 +71,7 @@ projects:
               # content hash, so assets are cached for a year.
               - path: /*
                 name: Content-Security-Policy
-                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://reservehub-api-staging.onrender.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api-staging.reservehub-hh.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
               - path: /*
                 name: Strict-Transport-Security
                 value: "max-age=31536000; includeSubDomains"
@@ -131,7 +134,7 @@ projects:
               - key: AUTH0_AUDIENCE
                 value: https://reservehub-api
               - key: FRONTEND_ORIGIN
-                value: https://reservehub-web.onrender.com
+                value: https://www.reservehub-hh.com
               - key: CALENDARIFIC_API_KEY
                 sync: false
 
@@ -145,7 +148,7 @@ projects:
               - key: NODE_VERSION
                 value: "24"
               - key: VITE_API_URL
-                value: https://reservehub-api-dxu7.onrender.com
+                value: https://api.reservehub-hh.com
               - key: VITE_AUTH0_DOMAIN
                 value: dev-ufj4dlu42vc0rwfy.us.auth0.com
               - key: VITE_AUTH0_AUDIENCE
@@ -158,7 +161,7 @@ projects:
               # content hash, so assets are cached for a year.
               - path: /*
                 name: Content-Security-Policy
-                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://reservehub-api-dxu7.onrender.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.reservehub-hh.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
               - path: /*
                 name: Strict-Transport-Security
                 value: "max-age=31536000; includeSubDomains"
