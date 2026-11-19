@@ -1,7 +1,9 @@
-const { rateLimit } = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+const { clientIp } = require("./client-ip.cjs");
 
-// Limits are per client IP, per minute. Set TRUST_PROXY=1 on Render so
-// req.ip is the visitor's address rather than Render's proxy.
+// Limits are per client IP, per minute. On Render the client IP comes from
+// Cloudflare's CF-Connecting-IP header (see client-ip.cjs); locally it is
+// the connection address.
 // The counters live in memory, which is fine for one instance; several
 // instances would need a shared store such as Redis.
 
@@ -33,6 +35,9 @@ function limiter(name, limit, skip) {
   return rateLimit({
     windowMs: MINUTE,
     limit,
+    // ipKeyGenerator groups IPv6 addresses by /56 so one user cannot get
+    // a fresh limit from each address in their range.
+    keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
     standardHeaders: "draft-8",
     legacyHeaders: false,
     skip,

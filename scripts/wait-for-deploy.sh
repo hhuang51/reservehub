@@ -3,7 +3,8 @@
 # Polls until the URL reports the expected commit. Exits 1 on timeout.
 set -euo pipefail
 
-url="$1"
+# Strip any whitespace (e.g. a pasted variable with a trailing space or newline).
+url="$(printf '%s' "$1" | tr -d '[:space:]')"
 expected="$2"
 timeout="${3:-900}"
 deadline=$(( $(date +%s) + timeout ))
