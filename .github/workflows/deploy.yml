@@ -32,7 +32,7 @@ jobs:
     outputs:
       sha: ${{ steps.sha.outputs.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.inputs.ref || github.sha }}
 
@@ -48,7 +48,7 @@ jobs:
             echo "- Trigger: ${{ github.event_name }} by ${{ github.actor }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
 
@@ -66,9 +66,10 @@ jobs:
   staging:
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     environment: staging
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Deploy this commit to staging
         env:
@@ -84,16 +85,19 @@ jobs:
         env:
           SHA: ${{ needs.test.outputs.sha }}
         run: |
-          bash scripts/wait-for-deploy.sh "${{ vars.API_URL }}/healthz" "$SHA" 900
-          bash scripts/wait-for-deploy.sh "${{ vars.WEB_URL }}/version.json" "$SHA" 900
+          # The free staging API can take 15+ minutes to build and start,
+          # so staging gets 30 minutes; production (paid) keeps 15.
+          bash scripts/wait-for-deploy.sh "${{ vars.WEB_URL }}/version.json" "$SHA" 1800
+          bash scripts/wait-for-deploy.sh "${{ vars.API_URL }}/healthz" "$SHA" 1800
           echo "- Staging verified at $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
 
   production:
     needs: [test, staging]
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Deploy the same commit to production
         env:
