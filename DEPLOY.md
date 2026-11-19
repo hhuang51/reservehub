@@ -99,7 +99,7 @@ Screenshot it for D5.
 Check by hand:
 
 ```
-curl -i https://reservehub-api.onrender.com/healthz
+curl -i https://reservehub-api-dxu7.onrender.com/healthz
 curl -I https://reservehub-web.onrender.com/
 curl https://reservehub-web.onrender.com/version.json
 ```
@@ -108,7 +108,7 @@ curl https://reservehub-web.onrender.com/version.json
 
 ## 5. Rollback demonstration
 
-1. Note the current commit: `curl https://reservehub-api.onrender.com/healthz`.
+1. Note the current commit: `curl https://reservehub-api-dxu7.onrender.com/healthz`.
 2. Actions → **Test and deploy** → Run workflow → enter the **previous**
    commit SHA (`git log --oneline`).
 3. When the run finishes, `/healthz` shows the older commit. Save the

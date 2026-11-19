@@ -270,5 +270,10 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`ReserveHub API running at http://localhost:${PORT}`);
+  // On Render the public address is the service URL, not localhost.
+  console.log(
+    process.env.RENDER === "true"
+      ? `ReserveHub API listening on port ${PORT} (${process.env.APP_ENV || "unknown"})`
+      : `ReserveHub API running at http://localhost:${PORT}`
+  );
 });

@@ -145,7 +145,7 @@ projects:
               - key: NODE_VERSION
                 value: "24"
               - key: VITE_API_URL
-                value: https://reservehub-api.onrender.com
+                value: https://reservehub-api-dxu7.onrender.com
               - key: VITE_AUTH0_DOMAIN
                 value: dev-ufj4dlu42vc0rwfy.us.auth0.com
               - key: VITE_AUTH0_AUDIENCE
@@ -158,7 +158,7 @@ projects:
               # content hash, so assets are cached for a year.
               - path: /*
                 name: Content-Security-Policy
-                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://reservehub-api.onrender.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://reservehub-api-dxu7.onrender.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
               - path: /*
                 name: Strict-Transport-Security
                 value: "max-age=31536000; includeSubDomains"
