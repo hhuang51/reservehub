@@ -7,7 +7,6 @@ const {
 } = require("./auth.cjs");
 
 const { validSlot, hasStarted } = require("./validation.cjs");
-const { publicRevalidate } = require("./http-headers.cjs");
 
 const router = express.Router();
 const schedulerOnly = [checkJwt, checkWriteReservations, requireScheduler];
@@ -87,7 +86,6 @@ router.get("/rooms/:roomId/closures", (req, res) => {
       error: { code: "ROOM_NOT_FOUND", message: "Room not found." },
     });
   }
-  publicRevalidate(res);
   res.json(db.prepare(`
     SELECT ${closureFields} FROM closures
     WHERE room_id = ? AND active = 1 ORDER BY date, start_time
