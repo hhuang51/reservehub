@@ -9,14 +9,78 @@
 // no-ops and only the JSON line is written.
 
 const { trace, metrics } = require("@opentelemetry/api");
-const { logs, SeverityNumber } = require("@opentelemetry/api-logs");
+const { SeverityNumber } = require("@opentelemetry/api-logs");
 
-// Look providers up when used, not when this file loads: the OpenTelemetry
-// SDK can finish starting slightly after the app's modules load, and a logger
-// or meter fetched too early stays a no-op forever. (Traces are unaffected
-// because the trace API hands out a proxy that upgrades itself.)
-function otelLogger() {
-  return logs.getLogger("reservehub-api");
+// Logs get their own exporter pipeline (rather than relying on the automatic
+// setup in otel.cjs), so log export does not depend on SDK startup timing.
+// It uses the same endpoint and auth header environment variables. If
+// anything goes wrong, logging falls back to stdout only and the API keeps
+// running.
+let otelLogger = null;
+let logSetupDone = false;
+
+function parseResourceAttributes(text = "") {
+  const attributes = {};
+
+  for (const pair of text.split(",")) {
+    const index = pair.indexOf("=");
+    if (index > 0) {
+      attributes[pair.slice(0, index).trim()] = decodeURIComponent(
+        pair.slice(index + 1).trim()
+      );
+    }
+  }
+
+  return attributes;
+}
+
+function getOtelLogger() {
+  if (logSetupDone) return otelLogger;
+  logSetupDone = true;
+
+  if (!process.env.OTEL_EXPORTER_OTLP_ENDPOINT) return null;
+
+  try {
+    const sdkLogs = require("@opentelemetry/sdk-logs");
+    const { OTLPLogExporter } = require("@opentelemetry/exporter-logs-otlp-proto");
+    const resources = require("@opentelemetry/resources");
+
+    const attributes = {
+      ...parseResourceAttributes(process.env.OTEL_RESOURCE_ATTRIBUTES),
+      "service.name": process.env.OTEL_SERVICE_NAME || "reservehub-api",
+    };
+
+    const resource = resources.resourceFromAttributes
+      ? resources.resourceFromAttributes(attributes)
+      : new resources.Resource(attributes);
+
+    // Reads OTEL_EXPORTER_OTLP_ENDPOINT (+ /v1/logs) and
+    // OTEL_EXPORTER_OTLP_HEADERS from the environment.
+    const processor = new sdkLogs.BatchLogRecordProcessor(new OTLPLogExporter());
+    const provider = new sdkLogs.LoggerProvider({
+      resource,
+      processors: [processor],
+    });
+
+    // Older SDK versions take processors through a method instead.
+    if (typeof provider.addLogRecordProcessor === "function") {
+      provider.addLogRecordProcessor(processor);
+    }
+
+    otelLogger = provider.getLogger("reservehub-api");
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        time: new Date().toISOString(),
+        level: "warn",
+        message: "log export disabled",
+        reason: error?.message,
+      })
+    );
+    otelLogger = null;
+  }
+
+  return otelLogger;
 }
 
 const SEVERITY = {
@@ -44,12 +108,16 @@ function log(level, message, attributes = {}) {
   else if (level === "warn") console.warn(line);
   else console.log(line);
 
-  otelLogger().emit({
-    severityNumber: SEVERITY[level] ?? SeverityNumber.INFO,
-    severityText: level.toUpperCase(),
-    body: message,
-    attributes,
-  });
+  try {
+    getOtelLogger()?.emit({
+      severityNumber: SEVERITY[level] ?? SeverityNumber.INFO,
+      severityText: level.toUpperCase(),
+      body: message,
+      attributes: { ...attributes, ...ids },
+    });
+  } catch {
+    // Never let telemetry break a request.
+  }
 }
 
 // Business metric: reservation changes, by action
