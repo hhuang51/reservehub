@@ -81,7 +81,7 @@ projects:
                 sync: false
               # Grafana Faro collector (public by design), see src/observability.ts.
               - key: VITE_FARO_URL
-                sync: false
+                value: https://faro-collector-prod-us-west-0.grafana.net/collect/2569d9566e074f6d683f5b9f57da343b
               - key: VITE_APP_ENV
                 value: staging
             headers:
@@ -183,7 +183,7 @@ projects:
               - key: VITE_AUTH0_CLIENT_ID
                 sync: false
               - key: VITE_FARO_URL
-                sync: false
+                value: https://faro-collector-prod-us-west-0.grafana.net/collect/2569d9566e074f6d683f5b9f57da343b
               - key: VITE_APP_ENV
                 value: production
             headers:
