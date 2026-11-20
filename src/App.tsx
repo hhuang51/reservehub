@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import useLiveUpdates from "./useLiveUpdates";
-import McpPanel from "./McpPanel";
 
 import AuthButtons from "./AuthButtons";
 import ApiCheck from "./ApiCheck";
 import ReservationForm from "./ReservationForm";
 import RoomSchedule from "./RoomSchedule";
 import { API_URL } from "./config";
+
+// The MCP panel pulls in the MCP SDK and zod, the largest libraries in the
+// app. Load them only when someone opens the panel (D8).
+const McpPanel = lazy(() => import("./McpPanel"));
 
 type Room = {
   id: number;
@@ -107,6 +110,7 @@ export default function App() {
   const [scheduleRefresh, setScheduleRefresh] = useState(0);
 
   const liveRevision = useLiveUpdates();
+  const [showMcp, setShowMcp] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -483,7 +487,18 @@ export default function App() {
       )}
 
       <hr />
-      <McpPanel />
+      {showMcp ? (
+        <Suspense fallback={<p role="status">Loading MCP panel…</p>}>
+          <McpPanel />
+        </Suspense>
+      ) : (
+        <section aria-labelledby="mcp-open-heading">
+          <h2 id="mcp-open-heading">MCP reservation panel</h2>
+          <button type="button" onClick={() => setShowMcp(true)}>
+            Open MCP panel
+          </button>
+        </section>
+      )}
     </main>
   );
 }

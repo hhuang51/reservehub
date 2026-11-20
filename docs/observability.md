@@ -9,6 +9,8 @@ over OTLP/HTTP from both APIs on Render.
 | Metrics | Same SDK: `http.server.request.duration` histogram, `http.client.request.duration`, plus the business counter `reservehub.reservation.changes` (`server/telemetry.cjs`) | Explore → `grafanacloud-tanlime2726-prom` |
 | Logs | `server/telemetry.cjs`: one JSON line per request to stdout **and** OTLP, each with `trace_id`/`span_id` | Explore → `grafanacloud-tanlime2726-logs` (Loki), Render → Logs |
 
+| Browser | Grafana Faro web SDK + tracing (`src/observability.ts`): page loads, errors, Web Vitals, and a span for every `fetch()` to the API, which carries a W3C `traceparent` header | Explore → traces, `service.name = "reservehub-web"`; Observability → Frontend |
+
 Services are separated by `service.name`: `reservehub-api` (production) and
 `reservehub-api-staging` (staging). In Prometheus these appear as
 `job="reservehub/reservehub-api"` and `job="reservehub/reservehub-api-staging"`.
@@ -16,6 +18,40 @@ Services are separated by `service.name`: `reservehub-api` (production) and
 Credentials (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`) are Render
 secrets, never in the repository. Telemetry is disabled when they are unset
 (local development).
+
+## Distributed trace across two components
+
+One user action produces one trace with spans from two components:
+
+```
+reservehub-web            GET (browser fetch)                    52 ms
+└─ reservehub-api-staging GET /api/rooms                         1.1 ms
+   ├─ middleware - securityHeaders, corsMiddleware, jsonParser, ...
+   └─ request handler - /api/rooms                               0.7 ms
+```
+
+(Evidence: trace `2bae7038069c87c50528b52fafbcb3e0`, Services 2, Spans 10.)
+
+How it links: the Faro tracing instrumentation adds a `traceparent` header to
+requests whose URL matches the API origin (`propagateTraceHeaderCorsUrls` in
+`src/observability.ts`). The API's CORS settings allow that header, and the
+Node.js HTTP instrumentation continues the same trace. Trace headers are never
+sent to third-party origins.
+
+The Tempo **Service Graph** shows the same relationship as an edge
+`reservehub-web → reservehub-api(-staging)`, with request and error rates.
+
+**Browser-only failures.** A browser span with status `0` and no API child
+(e.g. trace `9a5ccf2a5aaae4651f638c68364c6c45`) is a request that never reached
+the server: blocked by an extension, cancelled, or a network failure. Server
+logs cannot see these; only browser telemetry does.
+
+**Known limitation.** Ad-blocking and privacy extensions commonly block
+requests to monitoring collectors (seen in testing as `(blocked:other)` for
+`faro-collector-...grafana.net`), so browser telemetry is missing for those
+users. A production fix would route Faro data through the app's own domain
+(a small proxy endpoint on the API) so it is not treated as third-party
+tracking.
 
 ## Useful queries
 

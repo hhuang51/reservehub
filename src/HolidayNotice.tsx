@@ -126,6 +126,17 @@ export default function HolidayNotice({ date }: Props) {
       {matches.length === 0 && data.status === "fresh" && (
         <p>No US national holiday is listed for this date.</p>
       )}
+
+      {/* Required by the Calendarific free plan. */}
+      <p>
+        <small>
+          Holiday data from{" "}
+          <a href="https://calendarific.com" target="_blank" rel="noreferrer">
+            Calendarific
+          </a>
+          .
+        </small>
+      </p>
     </div>
   );
 }
