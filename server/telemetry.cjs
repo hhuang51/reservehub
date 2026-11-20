@@ -11,8 +11,13 @@
 const { trace, metrics } = require("@opentelemetry/api");
 const { logs, SeverityNumber } = require("@opentelemetry/api-logs");
 
-const otelLogger = logs.getLogger("reservehub-api");
-const meter = metrics.getMeter("reservehub-api");
+// Look providers up when used, not when this file loads: the OpenTelemetry
+// SDK can finish starting slightly after the app's modules load, and a logger
+// or meter fetched too early stays a no-op forever. (Traces are unaffected
+// because the trace API hands out a proxy that upgrades itself.)
+function otelLogger() {
+  return logs.getLogger("reservehub-api");
+}
 
 const SEVERITY = {
   debug: SeverityNumber.DEBUG,
@@ -39,7 +44,7 @@ function log(level, message, attributes = {}) {
   else if (level === "warn") console.warn(line);
   else console.log(line);
 
-  otelLogger.emit({
+  otelLogger().emit({
     severityNumber: SEVERITY[level] ?? SeverityNumber.INFO,
     severityText: level.toUpperCase(),
     body: message,
@@ -49,11 +54,19 @@ function log(level, message, attributes = {}) {
 
 // Business metric: reservation changes, by action
 // (created / updated / canceled). Exported as reservehub_reservation_changes_total.
-const reservationChanges = meter.createCounter("reservehub.reservation.changes", {
-  description: "Committed reservation changes, by action",
-});
+// Created on first use (the first reservation change happens long after
+// startup, when the SDK is ready).
+let reservationChanges = null;
 
 function recordReservationChange(action) {
+  if (!reservationChanges) {
+    reservationChanges = metrics
+      .getMeter("reservehub-api")
+      .createCounter("reservehub.reservation.changes", {
+        description: "Committed reservation changes, by action",
+      });
+  }
+
   reservationChanges.add(1, { action });
 }
 
