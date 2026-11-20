@@ -62,6 +62,46 @@ MCP path: the MCP panel calls `POST /mcp` (tools) and `POST /mcp/confirmations`
 single-use, user-bound, 5-minute confirmation ID and then calls the REST route
 above over loopback, so the same validation and audit apply.
 
+## Live updates: why SSE (F11)
+
+**What the app needs:** when anyone books, edits, cancels, or closes a room,
+every open page should refresh its room list and schedule. The data flows one
+way, server to browser. Browsers never send anything over this channel; all
+changes go through the normal authenticated REST API.
+
+**Why Server-Sent Events fit better than WebSockets here:**
+
+- **One-way is all we need.** SSE is a plain HTTP response that stays open and
+  carries server-to-browser messages. WebSockets add a two-way protocol we would
+  not use.
+- **Automatic reconnection is built in.** The browser's `EventSource`
+  reconnects by itself (the server sets `retry: 3000`), so no reconnect code is
+  needed on the client.
+- **It works through the existing HTTP stack.** Same CORS rules, same Render
+  proxy, same HTTPS. No protocol upgrade, which some proxies handle poorly.
+- **No secrets travel over it.** The stream is public and carries only an
+  opaque revision string (`"12-3"`), never reservation details or identities,
+  so it needs no authentication of its own.
+
+**Recovery after a disconnect (documented snapshot recovery):**
+
+1. Revisions come from the append-only audit tables:
+   `MAX(audit_events.id)` and `MAX(closure_audit.id)`, so they are persisted
+   in the database and survive restarts.
+2. Every message has an event ID (`id: <revision>`).
+3. On every new or re-established connection, the server immediately sends the
+   current revision. The client treats that as "refetch everything" (snapshot),
+   so anything missed while disconnected is recovered by reloading the current
+   state rather than replaying individual events.
+4. **Client deduplication:** the client ignores a message whose revision equals
+   the last one it processed, and resets that memory on reconnect so the
+   snapshot is always applied (`src/useLiveUpdates.tsx`).
+
+**Trade-off:** snapshot recovery refetches whole lists instead of replaying
+deltas. For a building with a handful of rooms the lists are tiny, so this is
+simpler and cannot drift out of sync. At 100× traffic, change detection should
+move to one shared poller (see `docs/cost.md`).
+
 ## 2. Trust boundaries
 
 ```mermaid
