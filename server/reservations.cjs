@@ -7,6 +7,7 @@ const {
 } = require("./auth.cjs");
 
 const { validateReservation } = require("./validation.cjs");
+const { recordReservationChange } = require("./telemetry.cjs");
 
 const router = express.Router();
 
@@ -100,6 +101,7 @@ router.post(
 
       db.exec("COMMIT;");
       transactionStarted = false;
+      recordReservationChange("created");
 
       return res.status(201).json(reservation);
     } catch (error) {
@@ -211,6 +213,7 @@ router.patch(
 
       db.exec("COMMIT");
       transactionStarted = false;
+      recordReservationChange("canceled");
       return res.json(after);
     } catch (error) {
       if (transactionStarted) db.exec("ROLLBACK");
@@ -320,6 +323,7 @@ router.patch(
 
       db.exec("COMMIT");
       transactionStarted = false;
+      recordReservationChange("updated");
       return res.json(after);
     } catch (error) {
       if (transactionStarted) db.exec("ROLLBACK");

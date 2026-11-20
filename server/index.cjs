@@ -10,6 +10,8 @@ const cors = require("cors");
 const { db, getRooms } = require("./database.cjs");
 const schedule = require("./schedule.cjs");
 const { validSlot } = require("./validation.cjs");
+const { log, requestLogger } = require("./telemetry.cjs");
+const { createFaultInjection } = require("./fault-injection.cjs");
 const {
   securityHeaders,
   defaultCachePolicy,
@@ -54,6 +56,9 @@ app.use(
   })
 );
 
+const faultInjection = createFaultInjection(log);
+
+app.use(requestLogger);
 app.use(securityHeaders);
 app.use(defaultCachePolicy);
 app.use(express.json({ limit: "16kb" }));
@@ -93,7 +98,7 @@ app.get("/healthz", (req, res, next) => {
 });
 
 // Public room list, optionally filtered by availability.
-app.get("/api/rooms", (req, res, next) => {
+app.get("/api/rooms", faultInjection, (req, res, next) => {
   try {
     publicRevalidate(res);
 
@@ -131,7 +136,7 @@ app.get("/api/rooms", (req, res, next) => {
 });
 
 // Public schedule containing confirmed reservations.
-app.get("/api/rooms/:roomId/reservations", (req, res, next) => {
+app.get("/api/rooms/:roomId/reservations", faultInjection, (req, res, next) => {
   try {
     const roomId = Number(req.params.roomId);
 
@@ -259,7 +264,7 @@ app.use((error, req, res, next) => {
     });
   }
 
-  console.error("Server error:", error.message);
+  log("error", "server error", { message: error.message, path: req.path });
 
   return res.status(500).json({
     error: {
@@ -271,9 +276,14 @@ app.use((error, req, res, next) => {
 
 app.listen(PORT, () => {
   // On Render the public address is the service URL, not localhost.
-  console.log(
-    process.env.RENDER === "true"
-      ? `ReserveHub API listening on port ${PORT} (${process.env.APP_ENV || "unknown"})`
-      : `ReserveHub API running at http://localhost:${PORT}`
-  );
+  log("info", "server started", {
+    port: PORT,
+    environment: process.env.APP_ENV || "development",
+    commit: process.env.RENDER_GIT_COMMIT || "local",
+    telemetry: Boolean(process.env.OTEL_EXPORTER_OTLP_ENDPOINT),
+  });
+
+  if (process.env.RENDER !== "true") {
+    console.log(`ReserveHub API running at http://localhost:${PORT}`);
+  }
 });

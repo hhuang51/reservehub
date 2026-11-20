@@ -5,6 +5,7 @@ const {
   createHolidayService,
 } = require("./holidays.cjs");
 const { publicFor } = require("./http-headers.cjs");
+const { log } = require("./telemetry.cjs");
 const { db } = require("./database.cjs");
 
 require("dotenv").config({
@@ -20,6 +21,7 @@ const holidays = createHolidayService({
       path.join(__dirname, "holiday-cache.sqlite")
   ),
   getApiKey: () => process.env.CALENDARIFIC_API_KEY,
+  log: { error: (message) => log("error", message, { provider: "calendarific" }) },
 });
 
 router.get("/holidays", async (req, res, next) => {

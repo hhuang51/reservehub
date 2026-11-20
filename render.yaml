@@ -47,6 +47,20 @@ projects:
                 value: https://staging.reservehub-hh.com
               - key: CALENDARIFIC_API_KEY
                 sync: false
+              # OpenTelemetry -> Grafana Cloud (see docs/observability.md).
+              # Endpoint and auth header are secrets set in the dashboard.
+              - key: OTEL_SERVICE_NAME
+                value: reservehub-api-staging
+              - key: OTEL_RESOURCE_ATTRIBUTES
+                value: service.namespace=reservehub,deployment.environment=staging
+              - key: OTEL_EXPORTER_OTLP_ENDPOINT
+                sync: false
+              - key: OTEL_EXPORTER_OTLP_HEADERS
+                sync: false
+              # Fault injection for the SLO alert demo; 0 = off. A Blueprint
+              # sync resets it to 0. Ignored in production by the code.
+              - key: FAULT_ERROR_RATE
+                value: "0"
 
           - type: web
             name: reservehub-web-staging
@@ -136,6 +150,14 @@ projects:
               - key: FRONTEND_ORIGIN
                 value: https://www.reservehub-hh.com
               - key: CALENDARIFIC_API_KEY
+                sync: false
+              - key: OTEL_SERVICE_NAME
+                value: reservehub-api
+              - key: OTEL_RESOURCE_ATTRIBUTES
+                value: service.namespace=reservehub,deployment.environment=production
+              - key: OTEL_EXPORTER_OTLP_ENDPOINT
+                sync: false
+              - key: OTEL_EXPORTER_OTLP_HEADERS
                 sync: false
 
           - type: web

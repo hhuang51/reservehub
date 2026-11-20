@@ -1,5 +1,6 @@
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const { clientIp } = require("./client-ip.cjs");
+const { log } = require("./telemetry.cjs");
 
 // Limits are per client IP, per minute. On Render the client IP comes from
 // Cloudflare's CF-Connecting-IP header (see client-ip.cjs); locally it is
@@ -42,7 +43,11 @@ function limiter(name, limit, skip) {
     legacyHeaders: false,
     skip,
     handler: (req, res, next, options) => {
-      console.warn(`Rate limit reached: ${name} ${req.method} ${req.path}`);
+      log("warn", "rate limit reached", {
+        limiter: name,
+        method: req.method,
+        path: req.path,
+      });
 
       res.status(options.statusCode).json({
         error: {
