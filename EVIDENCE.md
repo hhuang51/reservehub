@@ -1,6 +1,5 @@
 # ReserveHub: evidence checklist
 
-This file shows the grader where the proof is for every requirement.
 
 **All screenshots, saved reports, and command outputs are in the `evidence/` folder.**
 
@@ -13,8 +12,6 @@ This file shows the grader where the proof is for every requirement.
 
 **Run all tests with one command:** `cd server` then `npm test`
 
-**Tip:** for each item, write down the commit you tested. Get it by opening
-https://api.reservehub-hh.com/healthz and copying the first 7 characters of `commit`.
 
 ---
 
