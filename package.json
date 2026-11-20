@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.30.0",
+    "@grafana/faro-web-sdk": "^2.14.0",
+    "@grafana/faro-web-tracing": "^2.14.0",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "dotenv": "^18.0.10",
     "express-oauth2-jwt-bearer": "^1.11.0",

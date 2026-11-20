@@ -79,13 +79,18 @@ projects:
                 value: https://reservehub-api
               - key: VITE_AUTH0_CLIENT_ID
                 sync: false
+              # Grafana Faro collector (public by design), see src/observability.ts.
+              - key: VITE_FARO_URL
+                sync: false
+              - key: VITE_APP_ENV
+                value: staging
             headers:
               # Security headers on everything. HTML is revalidated on every
               # visit so a deploy shows up at once; Vite asset names contain a
               # content hash, so assets are cached for a year.
               - path: /*
                 name: Content-Security-Policy
-                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api-staging.reservehub-hh.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api-staging.reservehub-hh.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com https://*.grafana.net; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
               - path: /*
                 name: Strict-Transport-Security
                 value: "max-age=31536000; includeSubDomains"
@@ -177,13 +182,17 @@ projects:
                 value: https://reservehub-api
               - key: VITE_AUTH0_CLIENT_ID
                 sync: false
+              - key: VITE_FARO_URL
+                sync: false
+              - key: VITE_APP_ENV
+                value: production
             headers:
               # Security headers on everything. HTML is revalidated on every
               # visit so a deploy shows up at once; Vite asset names contain a
               # content hash, so assets are cached for a year.
               - path: /*
                 name: Content-Security-Policy
-                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.reservehub-hh.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+                value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.reservehub-hh.com https://dev-ufj4dlu42vc0rwfy.us.auth0.com https://*.grafana.net; frame-src https://dev-ufj4dlu42vc0rwfy.us.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
               - path: /*
                 name: Strict-Transport-Security
                 value: "max-age=31536000; includeSubDomains"
