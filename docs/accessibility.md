@@ -46,15 +46,17 @@ contrast, landmarks, ARIA validity); the manual tests below cover the rest.
 
 Lighthouse Mobile, Incognito, production.
 
-| Metric | Before (2026-11-19 21:30) | After | Change |
+| Metric | Before (2026-11-19 21:30, 1 run) | After (2026-11-19 21:47, 1 run) | Change |
 |---|---|---|---|
-| Performance score | 94 | | |
-| First Contentful Paint | 2.4 s | | |
-| Largest Contentful Paint | 2.5 s | | |
-| Total Blocking Time | 20 ms | | |
-| Cumulative Layout Shift | 0 | | |
-| Speed Index | 2.4 s | | |
-| Main JS bundle (from `npm run build`) | 785.79 kB (227.01 kB gzip) | | |
+| Performance score | 94 | 86 | −8 |
+| First Contentful Paint | 2.4 s | 3.0 s | +0.6 s (worse) |
+| Largest Contentful Paint | 2.5 s | 3.4 s | +0.9 s (worse) |
+| Total Blocking Time | 20 ms | 20 ms | no change |
+| Cumulative Layout Shift | 0 | 0 | no change |
+| Speed Index | 2.4 s | 3.0 s | +0.6 s (worse) |
+| Main JS bundle (from `npm run build`) | 785.79 kB (227.01 kB gzip) | _fill in from build output_ | |
+| Accessibility score | 100 | 100 | no change |
+| Best Practices score | 96 | 96 | no change |
 
 **Change made:** the MCP panel (MCP SDK + zod, the largest dependencies) is
 loaded with `React.lazy` only when the user clicks "Open MCP panel", and browser
@@ -65,6 +67,22 @@ first screen needs neither.
 **Why FCP was the target:** it was the only metric outside the green range.
 Before first paint the browser had to download and parse one 786 kB bundle;
 splitting removes code the first screen never uses.
+
+**Interpretation of the result.** The first "after" run was slower, not
+faster. Likely reasons, in order of how much evidence there is:
+
+1. **Measurement noise.** Each column is a single Lighthouse run with simulated
+   slow-4G throttling; run-to-run variation of 0.5–1 s in FCP/LCP is common.
+   TBT and CLS, which do not depend on network timing, are unchanged.
+2. **Deployment timing.** The after run was taken shortly after pushing; it
+   must be confirmed that `/version.json` already reported the new commit.
+3. **A real side effect of the change.** The telemetry chunk was requested
+   immediately at startup, so on the throttled connection it competed with the
+   main bundle for bandwidth before first paint.
+
+**Follow-up:** telemetry is now loaded only after the `load` event
+(`src/main.tsx`), so it can no longer compete with first paint. A fair
+comparison takes the median of 3 runs per version, on a confirmed deploy.
 
 **Field data:** Faro also reports real-user Web Vitals to Grafana
 (Observability → Frontend → reservehub-web), for users without ad blockers.
