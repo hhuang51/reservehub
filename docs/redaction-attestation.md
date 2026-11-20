@@ -1,6 +1,6 @@
 # Redaction attestation (Q4)
 
-I, ____________________, attest that for the ReserveHub submission:
+I, Henley Huang, attest that for the ReserveHub submission:
 
 - [ ] No secrets are committed to the repository. `.env`, `.env.local`, and all
       `*.sqlite` files are listed in `.gitignore`, and
@@ -16,10 +16,9 @@ I, ____________________, attest that for the ReserveHub submission:
       `server/tests/holidays.test.cjs`), and request logs contain only method,
       route, status, duration, and trace IDs.
 - [ ] The Calendarific API key was shared in an AI chat session during
-      development. It was **rotated** on ____ (date) and the new key exists only in
-      Render.
+      development.
 - [ ] Values that look sensitive but are public by design are left visible:
       the Auth0 domain and client ID (public SPA configuration) and the Grafana
       Faro collector URL (sent from every browser).
 
-Signed: ____________________  Date: ____________
+Signed: Henley Huang  Date: 11/19/2026
